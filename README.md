@@ -1,6 +1,9 @@
 # machine
 study
 
+# 주소
+https://사용자명.github.io/저장소명/파일명.html
+
 # machine study
 
 - [공학수학 함수 탐색기](https://seonghyeonOrNot.github.io/machine/engineering_math_functions.html)
