@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>나사 역학 탐색기</title>
+<style>
+  *{box-sizing:border-box;margin:0;padding:0}
+  :root{
+    --bg:#f7f6f2;--surface:#ffffff;--surface2:#f0efe9;
+    --border:rgba(0,0,0,0.10);--border2:rgba(0,0,0,0.18);
+    --text:#1a1a18;--text2:#5f5e5a;--text3:#9c9a92;
+    --blue:#185fa5;--blue-bg:#e6f1fb;
+    --radius:10px;--radius-sm:6px;
+  }
+  @media(prefers-color-scheme:dark){
+    :root{
+      --bg:#181816;--surface:#222220;--surface2:#2a2a27;
+      --border:rgba(255,255,255,0.09);--border2:rgba(255,255,255,0.16);
+      --text:#e8e6de;--text2:#9c9a92;--text3:#5f5e5a;
+      --blue:#85b7eb;--blue-bg:#0c2a45;
+    }
+  }
+  body{font-family:'Noto Sans KR',system-ui,sans-serif;background:var(--bg);color:var(--text);padding:24px 20px;max-width:680px;margin:0 auto;min-height:100vh}
+  h1{font-size:20px;font-weight:600;margin-bottom:3px}
+  .sub{font-size:13px;color:var(--text2);margin-bottom:20px}
+  .concept-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px}
+  .concept-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:12px 14px}
+  .concept-card.teal{border-left:3px solid #0F6E56}
+  .concept-card.coral{border-left:3px solid #993C1D}
+  .concept-title{font-size:13px;font-weight:600;margin-bottom:4px}
+  .concept-body{font-size:12px;color:var(--text2);line-height:1.6}
+  .card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:16px 18px;margin-bottom:12px}
+  .ctrl{display:flex;align-items:center;gap:10px;margin-bottom:9px}
+  .ctrl label{font-size:13px;color:var(--text2);width:110px;flex-shrink:0}
+  .ctrl input[type=range]{flex:1;height:4px;appearance:none;-webkit-appearance:none;background:var(--surface2);border-radius:2px;outline:none;cursor:pointer}
+  .ctrl input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:16px;height:16px;background:var(--blue);border-radius:50%;cursor:pointer;border:2px solid var(--surface)}
+  .ctrl input[type=range]::-moz-range-thumb{width:14px;height:14px;background:var(--blue);border-radius:50%;cursor:pointer;border:2px solid var(--surface)}
+  .ctrl span{font-size:13px;font-weight:600;min-width:70px;text-align:right;font-family:'Courier New',monospace;color:var(--text)}
+  canvas{display:block;width:100%!important}
+  .chips{display:flex;gap:10px;flex-wrap:wrap;margin:14px 0}
+  .chip{background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius-sm);padding:8px 14px;flex:1;min-width:130px}
+  .chip-label{font-size:11px;color:var(--text3);margin-bottom:3px}
+  .chip-val{font-size:18px;font-weight:700;color:var(--text);font-family:'Courier New',monospace}
+  .note{font-size:12px;color:var(--text3);margin-top:8px;line-height:1.6}
+</style>
+</head>
+<body>
+<h1>나사 역학 탐색기</h1>
+<p class="sub">피치(나사산 간격)가 힘·속도에 미치는 영향을 직접 조작해보세요</p>
+
+<div class="concept-grid">
+  <div class="concept-card teal">
+    <div class="concept-title" style="color:#0F6E56">좁은 피치 (촘촘)</div>
+    <div class="concept-body">경사각 작음 → 힘 증폭 큼<br>1회전당 전진 거리 짧음<br>정밀 고정, 잭 스크류에 적합</div>
+  </div>
+  <div class="concept-card coral">
+    <div class="concept-title" style="color:#993C1D">넓은 피치 (성김)</div>
+    <div class="concept-body">경사각 큼 → 힘 증폭 작음<br>1회전당 전진 거리 김<br>빠른 체결이 필요한 곳에 적합</div>
+  </div>
+</div>
+
+<div class="card">
+  <div class="ctrl"><label>피치 p (mm)</label><input type="range" min="0.5" max="5" step="0.25" value="1.5" id="pitch" oninput="update()"><span id="pitch-v">1.50 mm</span></div>
+  <div class="ctrl"><label>나사 지름 d (mm)</label><input type="range" min="4" max="20" step="1" value="8" id="diam" oninput="update()"><span id="diam-v">8 mm</span></div>
+  <div class="ctrl"><label>인가 토크 T (N·m)</label><input type="range" min="1" max="20" step="0.5" value="5" id="torque" oninput="update()"><span id="torque-v">5.0 N·m</span></div>
+  <div style="margin:14px 0">
+    <canvas id="screw-canvas"></canvas>
+  </div>
+  <div class="chips" id="chips"></div>
+  <p class="note" id="note-txt"></p>
+</div>
+
+<script>
+const C=document.getElementById('screw-canvas');
+const W=640,H=320; C.width=W; C.height=H;
+const ctx=C.getContext('2d');
+
+function isDark(){return matchMedia('(prefers-color-scheme:dark)').matches;}
+function getCol(){
+  const d=isDark();
+  return{
+    line:d?'rgba(255,255,255,0.12)':'rgba(0,0,0,0.08)',
+    text:d?'#9c9a92':'#5f5e5a',
+    textStrong:d?'#e8e6de':'#1a1a18',
+    teal:d?'#1D9E75':'#0F6E56',
+    coral:d?'#D85A30':'#993C1D',
+    purple:d?'#7F77DD':'#534AB7',
+    amber:d?'#EF9F27':'#BA7517',
+    gray:d?'rgba(255,255,255,0.14)':'rgba(0,0,0,0.08)',
+    surface:d?'#222220':'#ffffff'
+  };
+}
+
+function update(){
+  const p=+document.getElementById('pitch').value;
+  const d=+document.getElementById('diam').value;
+  const T=+document.getElementById('torque').value;
+  document.getElementById('pitch-v').textContent=p.toFixed(2)+' mm';
+  document.getElementById('diam-v').textContent=d+' mm';
+  document.getElementById('torque-v').textContent=T.toFixed(1)+' N·m';
+
+  const circ=Math.PI*d;
+  const leadAngle=Math.atan(p/circ)*180/Math.PI;
+  const mechAdv=circ/p;
+  const axialForce=(2*Math.PI*T*mechAdv)/(d/1000)/1000;
+
+  document.getElementById('chips').innerHTML=`
+    <div class="chip"><div class="chip-label">리드각 (경사각)</div><div class="chip-val">${leadAngle.toFixed(1)}°</div></div>
+    <div class="chip"><div class="chip-label">기계적 이점 MA</div><div class="chip-val">${mechAdv.toFixed(1)}배</div></div>
+    <div class="chip"><div class="chip-label">축 방향 힘</div><div class="chip-val">${axialForce.toFixed(1)} kN</div></div>
+    <div class="chip"><div class="chip-label">1회전당 전진</div><div class="chip-val">${p.toFixed(2)} mm</div></div>
+  `;
+  document.getElementById('note-txt').textContent=
+    p<=1.5?'촘촘한 나사 — 힘을 강하게 증폭시키지만 조이는 데 여러 번 돌려야 합니다. 정밀 고정에 유리합니다.':
+    p<=3?'중간 피치 — 힘과 속도의 균형이 맞습니다.':
+    '성긴 나사 — 적은 회전으로 빠르게 전진하지만 힘 증폭은 작습니다. 빠른 체결이 필요한 곳에 유리합니다.';
+
+  drawScrew(p,d,T,mechAdv,leadAngle);
+}
+
+function rr(ctx,x,y,w,h,r){
+  ctx.beginPath();ctx.moveTo(x+r,y);ctx.lineTo(x+w-r,y);
+  ctx.quadraticCurveTo(x+w,y,x+w,y+r);ctx.lineTo(x+w,y+h-r);
+  ctx.quadraticCurveTo(x+w,y+h,x+w-r,y+h);ctx.lineTo(x+r,y+h);
+  ctx.quadraticCurveTo(x,y+h,x,y+h-r);ctx.lineTo(x,y+r);
+  ctx.quadraticCurveTo(x,y,x+r,y);ctx.closePath();
+}
+function brace(ctx,x,y,h,col){
+  ctx.strokeStyle=col;ctx.lineWidth=1.5;ctx.beginPath();
+  ctx.moveTo(x,y);ctx.lineTo(x+6,y);
+  ctx.moveTo(x+3,y);ctx.lineTo(x+3,y+h);
+  ctx.moveTo(x,y+h);ctx.lineTo(x+6,y+h);ctx.stroke();
+}
+
+function drawScrew(pitch,d,T,MA,leadAngle){
+  const col=getCol();
+  ctx.clearRect(0,0,W,H);
+
+  const sx=60,sw=160,sh=H-60;
+  const tc=Math.max(2,Math.floor(sh/(pitch*16)));
+  const sp=sh/tc;
+
+  ctx.fillStyle=col.gray; rr(ctx,sx,20,sw,sh,8); ctx.fill();
+  ctx.strokeStyle=col.textStrong;ctx.lineWidth=1;ctx.stroke();
+
+  for(let i=0;i<=tc;i++){
+    const y=20+i*sp;
+    ctx.strokeStyle=col.teal;ctx.lineWidth=2;
+    ctx.beginPath();ctx.moveTo(sx-10,y);ctx.lineTo(sx+sw+10,y);ctx.stroke();
+  }
+
+  ctx.fillStyle=col.textStrong;ctx.font='500 13px system-ui,sans-serif';ctx.textAlign='center';
+  ctx.fillText('나사 단면',sx+sw/2,H-8);
+
+  brace(ctx,sx+sw+14,20+sp*0.5,sp,col.coral);
+  ctx.fillStyle=col.coral;ctx.font='12px monospace';ctx.textAlign='left';
+  ctx.fillText('p='+pitch.toFixed(2)+'mm',sx+sw+34,20+sp*0.5+sp/2+4);
+
+  const rx=270,ry=H-30,rw=280;
+  const rh=Math.min(Math.tan(leadAngle*Math.PI/180)*rw,200);
+
+  ctx.strokeStyle=col.purple;ctx.lineWidth=2.5;
+  ctx.beginPath();ctx.moveTo(rx,ry);ctx.lineTo(rx+rw,ry-rh);ctx.stroke();
+
+  ctx.strokeStyle=col.line;ctx.lineWidth=1;ctx.setLineDash([4,3]);
+  ctx.beginPath();ctx.moveTo(rx,ry);ctx.lineTo(rx+rw,ry);ctx.stroke();
+  ctx.setLineDash([]);
+
+  ctx.strokeStyle=col.amber;ctx.lineWidth=1.5;
+  ctx.beginPath();ctx.arc(rx,ry,36,-leadAngle*Math.PI/180,0);ctx.stroke();
+
+  ctx.fillStyle=col.amber;ctx.font='12px system-ui,sans-serif';ctx.textAlign='left';
+  ctx.fillText('θ='+leadAngle.toFixed(1)+'°',rx+42,ry-6);
+
+  ctx.fillStyle=col.purple;ctx.font='500 12px system-ui,sans-serif';ctx.textAlign='center';
+  ctx.fillText('리드각 (경사각)',rx+rw/2,ry+22);
+
+  const mbx=270,mby=30,mbw=280;
+  const mw=Math.min((MA/25)*mbw,mbw);
+  ctx.fillStyle=col.line; rr(ctx,mbx,mby,mbw,22,4);ctx.fill();
+  ctx.fillStyle=col.teal; rr(ctx,mbx,mby,mw,22,4);ctx.fill();
+  ctx.fillStyle=col.textStrong;ctx.font='500 12px system-ui,sans-serif';ctx.textAlign='left';
+  ctx.fillText('기계적 이점: '+MA.toFixed(1)+'×',mbx+8,mby+15);
+  ctx.fillStyle=col.text;ctx.font='11px system-ui,sans-serif';
+  ctx.fillText('← 촘촘할수록 증가',mbx,mby+38);
+}
+
+update();
+</script>
+</body>
+</html>
