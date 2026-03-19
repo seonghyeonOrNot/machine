@@ -1,0 +1,218 @@
+
+<style>
+  .panel { background: var(--color-background-secondary); border-radius: var(--border-radius-lg); border: 0.5px solid var(--color-border-tertiary); padding: 1rem 1.25rem; margin-bottom: 12px; }
+  .row { display: flex; gap: 12px; margin-bottom: 12px; }
+  .metric { background: var(--color-background-primary); border-radius: var(--border-radius-md); border: 0.5px solid var(--color-border-tertiary); padding: 10px 14px; flex: 1; }
+  .metric-label { font-size: 12px; color: var(--color-text-secondary); margin-bottom: 4px; }
+  .metric-val { font-size: 20px; font-weight: 500; color: var(--color-text-primary); }
+  .r-row { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; }
+  .r-label { font-size: 13px; color: var(--color-text-secondary); width: 28px; }
+  .r-val { font-size: 13px; font-weight: 500; width: 52px; text-align: right; color: var(--color-text-primary); }
+  .bar-wrap { flex: 1; background: var(--color-border-tertiary); border-radius: 4px; height: 14px; overflow: hidden; }
+  .bar { height: 100%; border-radius: 4px; transition: width .35s; }
+  .vbar { background: #534AB7; }
+  .ibar { background: #0F6E56; }
+  .pbar { background: #993C1D; }
+  .section-title { font-size: 13px; font-weight: 500; color: var(--color-text-secondary); margin: 0 0 10px; }
+  .tab-row { display: flex; gap: 6px; margin-bottom: 12px; }
+  .tab { padding: 5px 14px; border-radius: var(--border-radius-md); border: 0.5px solid var(--color-border-tertiary); font-size: 13px; cursor: pointer; background: transparent; color: var(--color-text-secondary); }
+  .tab.active { background: var(--color-background-info); color: var(--color-text-info); border-color: transparent; font-weight: 500; }
+  .hint { font-size: 12px; color: var(--color-text-tertiary); margin-top: 6px; }
+  .rule-box { background: var(--color-background-primary); border-radius: var(--border-radius-md); border: 0.5px solid var(--color-border-tertiary); padding: 10px 14px; margin-bottom: 8px; }
+  .rule-title { font-size: 13px; font-weight: 500; margin-bottom: 4px; }
+  .rule-eq { font-family: var(--font-mono); font-size: 13px; color: var(--color-text-info); }
+</style>
+
+<div class="tab-row">
+  <button class="tab active" onclick="showTab('sim')">시뮬레이터</button>
+  <button class="tab" onclick="showTab('rules')">핵심 법칙</button>
+</div>
+
+<div id="tab-sim">
+  <div class="panel">
+    <div class="section-title">전압 / 저항 설정</div>
+    <div class="r-row">
+      <span class="r-label" style="width:60px;font-size:13px">전원 V</span>
+      <input type="range" min="1" max="50" value="12" id="vs" style="flex:1" oninput="calc()">
+      <span class="r-val" id="vs-out" style="width:52px">12 V</span>
+    </div>
+    <div id="r-inputs"></div>
+    <div style="display:flex;gap:8px;margin-top:10px">
+      <button class="tab" style="font-size:12px" onclick="addR()">＋ 저항 추가</button>
+      <button class="tab" style="font-size:12px" onclick="removeR()">－ 저항 제거</button>
+    </div>
+  </div>
+
+  <svg id="circ" width="100%" style="display:block;margin-bottom:12px"></svg>
+
+  <div class="row">
+    <div class="metric"><div class="metric-label">합성저항 R<sub>T</sub></div><div class="metric-val" id="m-rt">—</div></div>
+    <div class="metric"><div class="metric-label">전체 전류 I</div><div class="metric-val" id="m-i">—</div></div>
+    <div class="metric"><div class="metric-label">전체 전력 P</div><div class="metric-val" id="m-p">—</div></div>
+  </div>
+
+  <div class="panel">
+    <div class="section-title">각 저항의 전압 강하</div>
+    <div id="v-bars"></div>
+    <div class="hint">전압 강하 = I × R — 저항이 클수록 전압을 더 많이 가져갑니다</div>
+  </div>
+
+  <div class="panel">
+    <div class="section-title">각 저항의 소비 전력</div>
+    <div id="p-bars"></div>
+    <div class="hint">소비 전력 = I² × R — 저항이 클수록 더 많은 전력을 소비합니다</div>
+  </div>
+</div>
+
+<div id="tab-rules" style="display:none">
+  <div class="rule-box">
+    <div class="rule-title">① 합성저항</div>
+    <div class="rule-eq">R<sub>T</sub> = R<sub>1</sub> + R<sub>2</sub> + ··· + R<sub>n</sub></div>
+    <div class="hint" style="margin-top:6px">직렬에서는 모든 저항을 단순히 더합니다.</div>
+  </div>
+  <div class="rule-box">
+    <div class="rule-title">② 전류 (일정)</div>
+    <div class="rule-eq">I<sub>T</sub> = I<sub>1</sub> = I<sub>2</sub> = ··· = I<sub>n</sub></div>
+    <div class="hint" style="margin-top:6px">경로가 하나뿐이므로 모든 소자에 동일한 전류가 흐릅니다.</div>
+  </div>
+  <div class="rule-box">
+    <div class="rule-title">③ 전압 (분배)</div>
+    <div class="rule-eq">V<sub>T</sub> = V<sub>1</sub> + V<sub>2</sub> + ··· + V<sub>n</sub></div>
+    <div class="hint" style="margin-top:6px">인가전압 = 각 저항의 전압강하 합. 저항 비율대로 전압이 나뉩니다.</div>
+  </div>
+  <div class="rule-box">
+    <div class="rule-title">④ 옴의 법칙 적용</div>
+    <div class="rule-eq">V = IR &nbsp;→&nbsp; I = V/R<sub>T</sub> &nbsp;→&nbsp; V<sub>k</sub> = I × R<sub>k</sub></div>
+    <div class="hint" style="margin-top:6px">합성저항으로 전류를 구하고, 각 저항에 개별 전압을 계산합니다.</div>
+  </div>
+  <div class="rule-box">
+    <div class="rule-title">⑤ 전압 분배 비율</div>
+    <div class="rule-eq">R<sub>1</sub> : R<sub>2</sub> : ··· = V<sub>1</sub> : V<sub>2</sub> : ···</div>
+    <div class="hint" style="margin-top:6px">전류가 같으므로 전압강하는 저항에 정비례합니다.</div>
+  </div>
+</div>
+
+<script>
+const COLORS = ['#534AB7','#0F6E56','#993C1D','#185FA5'];
+const COLORS_L = ['#EEEDFE','#E1F5EE','#FAECE7','#E6F1FB'];
+let Rs = [100, 330, 560, 220];
+
+function showTab(t) {
+  document.getElementById('tab-sim').style.display = t==='sim' ? '' : 'none';
+  document.getElementById('tab-rules').style.display = t==='rules' ? '' : 'none';
+  document.querySelectorAll('.tab').forEach(b => b.classList.remove('active'));
+  event.target.classList.add('active');
+}
+
+function buildInputs() {
+  const c = document.getElementById('r-inputs');
+  c.innerHTML = '';
+  Rs.forEach((r, i) => {
+    c.innerHTML += `<div class="r-row">
+      <span class="r-label">R<sub>${i+1}</sub></span>
+      <input type="range" min="10" max="2200" step="10" value="${r}" id="r${i}" style="flex:1" oninput="Rs[${i}]=+this.value;calc()">
+      <span class="r-val" id="rv${i}">${r} Ω</span>
+    </div>`;
+  });
+}
+
+function addR() { if(Rs.length<4){ Rs.push(470); buildInputs(); calc(); } }
+function removeR() { if(Rs.length>2){ Rs.pop(); buildInputs(); calc(); } }
+
+function fmt(v, unit) {
+  if(unit==='Ω') return v>=1000 ? (v/1000).toFixed(2)+'kΩ' : v+'Ω';
+  if(unit==='mA') return v>=1000 ? (v/1000).toFixed(2)+'A' : v.toFixed(1)+'mA';
+  if(unit==='mW') return v>=1000 ? (v/1000).toFixed(2)+'W' : v.toFixed(1)+'mW';
+  if(unit==='V') return v.toFixed(2)+'V';
+  return v;
+}
+
+function calc() {
+  const Vs = +document.getElementById('vs').value;
+  document.getElementById('vs-out').textContent = Vs+' V';
+  Rs.forEach((r,i) => { document.getElementById('rv'+i).textContent = r+' Ω'; });
+
+  const RT = Rs.reduce((a,b)=>a+b,0);
+  const I = Vs / RT * 1000; // mA
+  const PT = Vs * I; // mW
+  document.getElementById('m-rt').textContent = fmt(RT,'Ω');
+  document.getElementById('m-i').textContent = fmt(I,'mA');
+  document.getElementById('m-p').textContent = fmt(PT,'mW');
+
+  const Vk = Rs.map(r => (I/1000)*r);
+  const maxV = Math.max(...Vk);
+  let vb = ''; let pb = '';
+  Rs.forEach((r,i) => {
+    const pk = (I/1000)**2 * r * 1000;
+    const maxP = Rs.map(rx => (I/1000)**2 * rx * 1000).reduce((a,b)=>Math.max(a,b),1);
+    vb += `<div class="r-row"><span class="r-label">R<sub>${i+1}</sub></span>
+      <div class="bar-wrap"><div class="bar vbar" style="width:${Math.round(Vk[i]/maxV*100)}%;background:${COLORS[i]}"></div></div>
+      <span class="r-val">${Vk[i].toFixed(2)}V</span></div>`;
+    pb += `<div class="r-row"><span class="r-label">R<sub>${i+1}</sub></span>
+      <div class="bar-wrap"><div class="bar pbar" style="width:${Math.round(pk/maxP*100)}%;background:${COLORS[i]}"></div></div>
+      <span class="r-val">${fmt(pk,'mW')}</span></div>`;
+  });
+  document.getElementById('v-bars').innerHTML = vb;
+  document.getElementById('p-bars').innerHTML = pb;
+  drawCircuit(Vs, I, Vk, RT);
+}
+
+function drawCircuit(Vs, I, Vk, RT) {
+  const n = Rs.length;
+  const W = 640, H = 200;
+  const pad = 40, cy = H/2;
+  const boxW = 60, boxH = 36;
+  const total = W - pad*2;
+  const spacing = total / (n+1);
+
+  let svg = `<svg viewBox="0 0 ${W} ${H}" width="100%" xmlns="http://www.w3.org/2000/svg" style="display:block">
+  <defs><marker id="a" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+    <path d="M2 1L8 5L2 9" fill="none" stroke="context-stroke" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></marker></defs>`;
+
+  // Top wire (with current arrow)
+  const x0 = pad, xEnd = W - pad;
+  svg += `<line x1="${x0}" y1="${cy-50}" x2="${xEnd}" y2="${cy-50}" stroke="var(--color-text-tertiary)" stroke-width="1.5" fill="none"/>`;
+  // Bottom wire
+  svg += `<line x1="${x0}" y1="${cy+50}" x2="${xEnd}" y2="${cy+50}" stroke="var(--color-text-tertiary)" stroke-width="1.5" fill="none"/>`;
+  // Left wire (battery side)
+  svg += `<line x1="${x0}" y1="${cy-50}" x2="${x0}" y2="${cy+50}" stroke="var(--color-text-tertiary)" stroke-width="1.5" fill="none"/>`;
+  // Right wire
+  svg += `<line x1="${xEnd}" y1="${cy-50}" x2="${xEnd}" y2="${cy+50}" stroke="var(--color-text-tertiary)" stroke-width="1.5" fill="none"/>`;
+
+  // Battery symbol
+  const bx = x0;
+  svg += `<line x1="${bx}" y1="${cy-14}" x2="${bx}" y2="${cy+14}" stroke="var(--color-text-secondary)" stroke-width="3"/>`;
+  svg += `<line x1="${bx-8}" y1="${cy-8}" x2="${bx+8}" y2="${cy-8}" stroke="var(--color-text-secondary)" stroke-width="1.5"/>`;
+  svg += `<line x1="${bx-4}" y1="${cy+8}" x2="${bx+4}" y2="${cy+8}" stroke="var(--color-text-secondary)" stroke-width="1.5"/>`;
+  svg += `<text x="${bx-14}" y="${cy+4}" font-size="11" fill="var(--color-text-secondary)" text-anchor="middle">${Vs}V</text>`;
+
+  // Current direction arrow on top wire
+  const arrowX = x0 + total * 0.5;
+  svg += `<line x1="${arrowX-18}" y1="${cy-50}" x2="${arrowX+4}" y2="${cy-50}" stroke="#0F6E56" stroke-width="1.5" marker-end="url(#a)" fill="none"/>`;
+  svg += `<text x="${arrowX}" y="${cy-55}" font-size="10" fill="#0F6E56" text-anchor="middle">${I.toFixed(1)}mA</text>`;
+
+  // Resistors
+  for(let i=0; i<n; i++) {
+    const cx = pad + spacing*(i+1);
+    const ry = cy - 50;
+    // Wire to/from box on top wire
+    svg += `<rect x="${cx-boxW/2}" y="${ry-boxH/2}" width="${boxW}" height="${boxH}" rx="6" fill="${COLORS_L[i]}" stroke="${COLORS[i]}" stroke-width="1"/>`;
+    svg += `<text x="${cx}" y="${ry-4}" font-size="11" fill="${COLORS[i]}" text-anchor="middle" font-weight="500">R${i+1}=${Rs[i]}Ω</text>`;
+    svg += `<text x="${cx}" y="${ry+10}" font-size="11" fill="${COLORS[i]}" text-anchor="middle">${Vk[i].toFixed(2)}V</text>`;
+  }
+
+  svg += `</svg>`;
+  document.getElementById('circ').outerHTML = svg.replace('<svg id="circ"','<svg id="circ"');
+  document.getElementById('circ') || (document.querySelector('#circ') || (function(){
+    const el = document.createElement('div');
+    el.innerHTML = svg;
+    document.getElementById('tab-sim').insertBefore(el.firstChild, document.getElementById('tab-sim').children[2]);
+  })());
+
+  const old = document.getElementById('circ');
+  if(old) { const tmp = document.createElement('div'); tmp.innerHTML = svg; old.replaceWith(tmp.firstChild); }
+}
+
+buildInputs();
+calc();
+</script>

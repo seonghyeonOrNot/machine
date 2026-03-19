@@ -1,0 +1,188 @@
+
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+.tabs{display:flex;gap:6px;margin-bottom:16px;flex-wrap:wrap}
+.tab{padding:6px 16px;border-radius:var(--border-radius-md);border:0.5px solid var(--color-border-tertiary);font-size:13px;cursor:pointer;background:transparent;color:var(--color-text-secondary);font-family:inherit}
+.tab.on{background:var(--color-background-info);color:var(--color-text-info);border-color:transparent;font-weight:500}
+.panel{display:none}.panel.on{display:block}
+.ctrl{display:flex;align-items:center;gap:10px;margin-bottom:10px}
+.ctrl label{font-size:13px;color:var(--color-text-secondary);width:72px;flex-shrink:0}
+.ctrl input[type=range]{flex:1}
+.ctrl span{font-size:13px;font-weight:500;min-width:52px;text-align:right;color:var(--color-text-primary);font-family:monospace}
+.info-row{display:flex;gap:10px;margin-top:12px;flex-wrap:wrap}
+.chip{background:var(--color-background-secondary);border:0.5px solid var(--color-border-tertiary);border-radius:var(--border-radius-md);padding:8px 12px;font-size:12px;color:var(--color-text-secondary);flex:1;min-width:100px}
+.chip b{display:block;font-size:14px;font-weight:500;color:var(--color-text-primary);margin-bottom:2px}
+canvas{display:block;width:100%!important}
+.note{font-size:12px;color:var(--color-text-tertiary);margin-top:8px}
+.section{background:var(--color-background-primary);border:0.5px solid var(--color-border-tertiary);border-radius:var(--border-radius-lg);padding:14px 16px;margin-bottom:12px}
+</style>
+
+<div class="tabs">
+  <button class="tab on" onclick="switchTab('linear',this)">1차 함수</button>
+  <button class="tab" onclick="switchTab('quad',this)">2차 함수</button>
+  <button class="tab" onclick="switchTab('exp',this)">지수 함수</button>
+  <button class="tab" onclick="switchTab('log',this)">로그 함수</button>
+  <button class="tab" onclick="switchTab('compare',this)">함께 보기</button>
+</div>
+
+<div id="p-linear" class="panel on">
+  <div class="section">
+    <div class="ctrl"><label>기울기 a</label><input type="range" min="-5" max="5" step="0.5" value="2" id="la" oninput="drawLinear()"><span id="la-v">2</span></div>
+    <div class="ctrl"><label>절편 b</label><input type="range" min="-5" max="5" step="0.5" value="1" id="lb" oninput="drawLinear()"><span id="lb-v">1</span></div>
+    <div style="position:relative;height:280px"><canvas id="cv-linear"></canvas></div>
+    <div class="info-row" id="lin-info"></div>
+    <p class="note">a &gt; 0 이면 증가, a &lt; 0 이면 감소. y절편은 항상 b, x절편은 −b/a</p>
+  </div>
+</div>
+
+<div id="p-quad" class="panel">
+  <div class="section">
+    <div class="ctrl"><label>a (볼록 방향)</label><input type="range" min="-3" max="3" step="0.5" value="1" id="qa" oninput="drawQuad()"><span id="qa-v">1</span></div>
+    <div class="ctrl"><label>꼭짓점 p</label><input type="range" min="-4" max="4" step="0.5" value="1" id="qp" oninput="drawQuad()"><span id="qp-v">1</span></div>
+    <div class="ctrl"><label>꼭짓점 q</label><input type="range" min="-4" max="4" step="0.5" value="-2" id="qq" oninput="drawQuad()"><span id="qq-v">-2</span></div>
+    <div style="position:relative;height:280px"><canvas id="cv-quad"></canvas></div>
+    <div class="info-row" id="quad-info"></div>
+    <p class="note">y = a(x−p)² + q. 꼭짓점 (p, q), 축 x = p. |a|가 클수록 폭이 좁아짐</p>
+  </div>
+</div>
+
+<div id="p-exp" class="panel">
+  <div class="section">
+    <div class="ctrl"><label>밑 a</label><input type="range" min="0.2" max="4" step="0.1" value="2" id="ea" oninput="drawExp()"><span id="ea-v">2</span></div>
+    <div class="ctrl"><label>이동 h</label><input type="range" min="-3" max="3" step="0.5" value="0" id="eh" oninput="drawExp()"><span id="eh-v">0</span></div>
+    <div class="ctrl"><label>이동 k</label><input type="range" min="-3" max="3" step="0.5" value="0" id="ek" oninput="drawExp()"><span id="ek-v">0</span></div>
+    <div style="position:relative;height:280px"><canvas id="cv-exp"></canvas></div>
+    <div class="info-row" id="exp-info"></div>
+    <p class="note">y = aˣ⁻ʰ + k. 점근선 y = k. a &gt; 1: 증가, 0 &lt; a &lt; 1: 감소</p>
+  </div>
+</div>
+
+<div id="p-log" class="panel">
+  <div class="section">
+    <div class="ctrl"><label>밑 a</label><input type="range" min="0.2" max="4" step="0.1" value="2" id="lga" oninput="drawLog()"><span id="lga-v">2</span></div>
+    <div class="ctrl"><label>이동 h</label><input type="range" min="-3" max="3" step="0.5" value="0" id="lgh" oninput="drawLog()"><span id="lgh-v">0</span></div>
+    <div class="ctrl"><label>이동 k</label><input type="range" min="-3" max="3" step="0.5" value="0" id="lgk" oninput="drawLog()"><span id="lgk-v">0</span></div>
+    <div style="position:relative;height:280px"><canvas id="cv-log"></canvas></div>
+    <div class="info-row" id="log-info"></div>
+    <p class="note">y = log_a(x−h) + k. 점근선 x = h. 지수함수와 y = x 기준으로 대칭</p>
+  </div>
+</div>
+
+<div id="p-compare" class="panel">
+  <div class="section">
+    <div class="ctrl"><label>밑 a</label><input type="range" min="0.5" max="4" step="0.1" value="2" id="ca" oninput="drawCompare()"><span id="ca-v">2</span></div>
+    <div style="position:relative;height:300px"><canvas id="cv-compare"></canvas></div>
+    <p class="note">파랑: y = aˣ (지수), 초록: y = log_a(x) (로그), 회색: y = x (대칭선). 지수와 로그는 y = x를 축으로 역함수 관계</p>
+  </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<script>
+const charts = {};
+const isDark = matchMedia('(prefers-color-scheme:dark)').matches;
+const gridCol = isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.07)';
+const axisCol = isDark ? 'rgba(255,255,255,0.35)' : 'rgba(0,0,0,0.35)';
+const txtCol  = isDark ? '#9c9a92' : '#5f5e5a';
+
+function baseOpts(xMin,xMax,yMin,yMax){
+  return {
+    responsive:true, maintainAspectRatio:false, animation:{duration:0},
+    plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>`(${c.parsed.x.toFixed(2)}, ${c.parsed.y.toFixed(2)})`}}},
+    scales:{
+      x:{type:'linear',min:xMin,max:xMax,grid:{color:gridCol},ticks:{color:txtCol,maxTicksLimit:9},border:{color:axisCol}},
+      y:{type:'linear',min:yMin,max:yMax,grid:{color:gridCol},ticks:{color:txtCol,maxTicksLimit:9},border:{color:axisCol}}
+    }
+  };
+}
+function xs(min,max,n=200){const r=[];for(let i=0;i<=n;i++)r.push(min+i*(max-min)/n);return r;}
+function makeOrUpdate(id,data,opts){
+  if(charts[id]){charts[id].data=data;charts[id].options=opts;charts[id].update('none');}
+  else charts[id]=new Chart(document.getElementById(id),{type:'line',data,options:opts});
+}
+function zeroLine(xMin,xMax){return{label:'',data:[{x:xMin,y:0},{x:xMax,y:0}],borderColor:axisCol,borderWidth:1,pointRadius:0,fill:false,tension:0};}
+function yAxisLine(yMin,yMax){return{label:'',data:[{x:0,y:yMin},{x:0,y:yMax}],borderColor:axisCol,borderWidth:1,pointRadius:0,fill:false,tension:0};}
+
+function drawLinear(){
+  const a=+document.getElementById('la').value, b=+document.getElementById('lb').value;
+  document.getElementById('la-v').textContent=a;
+  document.getElementById('lb-v').textContent=b;
+  const pts=xs(-6,6).map(x=>({x,y:a*x+b}));
+  const opts=baseOpts(-6,6,-8,8);
+  makeOrUpdate('cv-linear',{datasets:[zeroLine(-6,6),yAxisLine(-8,8),{label:'y=ax+b',data:pts,borderColor:'#534AB7',borderWidth:2.5,pointRadius:0,fill:false,tension:0}]},opts);
+  const xint=a!==0?(-b/a).toFixed(2):'없음';
+  document.getElementById('lin-info').innerHTML=`<div class="chip"><b>기울기</b>${a}</div><div class="chip"><b>y절편</b>${b}</div><div class="chip"><b>x절편</b>${xint}</div><div class="chip"><b>함수 유형</b>${a>0?'증가':'감소'}</div>`;
+}
+
+function drawQuad(){
+  const a=+document.getElementById('qa').value, p=+document.getElementById('qp').value, q=+document.getElementById('qq').value;
+  document.getElementById('qa-v').textContent=a;
+  document.getElementById('qp-v').textContent=p;
+  document.getElementById('qq-v').textContent=q;
+  const pts=xs(-6,6).map(x=>({x,y:a*(x-p)**2+q}));
+  const opts=baseOpts(-6,6,-6,10);
+  makeOrUpdate('cv-quad',{datasets:[zeroLine(-6,6),yAxisLine(-6,10),{label:'',data:pts,borderColor:'#0F6E56',borderWidth:2.5,pointRadius:0,fill:false,tension:0},{label:'꼭짓점',data:[{x:p,y:q}],borderColor:'#0F6E56',backgroundColor:'#0F6E56',pointRadius:6,pointStyle:'circle',showLine:false}]},opts);
+  const yint=(a*(0-p)**2+q).toFixed(2);
+  document.getElementById('quad-info').innerHTML=`<div class="chip"><b>꼭짓점</b>(${p}, ${q})</div><div class="chip"><b>축</b>x = ${p}</div><div class="chip"><b>y절편</b>${yint}</div><div class="chip"><b>볼록 방향</b>${a>0?'아래로':'위로'}</div>`;
+}
+
+function drawExp(){
+  const a=+document.getElementById('ea').value, h=+document.getElementById('eh').value, k=+document.getElementById('ek').value;
+  document.getElementById('ea-v').textContent=a.toFixed(1);
+  document.getElementById('eh-v').textContent=h;
+  document.getElementById('ek-v').textContent=k;
+  if(Math.abs(a-1)<0.05){document.getElementById('exp-info').innerHTML='<div class="chip" style="color:var(--color-text-danger)"><b>주의</b>밑 a = 1은 상수함수</div>';return;}
+  const pts=xs(-5,5).map(x=>{const y=Math.pow(a,x-h)+k;return{x,y:Math.abs(y)>20?null:y};});
+  const asym=[{x:-5,y:k},{x:5,y:k}];
+  const opts=baseOpts(-5,5,-5,10);
+  makeOrUpdate('cv-exp',{datasets:[zeroLine(-5,5),yAxisLine(-5,10),{label:'',data:asym,borderColor:'#BA7517',borderWidth:1.5,borderDash:[5,5],pointRadius:0,fill:false,tension:0},{label:'',data:pts,borderColor:'#993C1D',borderWidth:2.5,pointRadius:0,fill:false,tension:0,spanGaps:false}]},opts);
+  const at0=(Math.pow(a,0-h)+k).toFixed(2);
+  document.getElementById('exp-info').innerHTML=`<div class="chip"><b>밑 a</b>${a.toFixed(1)}</div><div class="chip"><b>점근선</b>y = ${k}</div><div class="chip"><b>x=0일때 y</b>${at0}</div><div class="chip"><b>유형</b>${a>1?'증가':'감소'}</div>`;
+}
+
+function drawLog(){
+  const a=+document.getElementById('lga').value, h=+document.getElementById('lgh').value, k=+document.getElementById('lgk').value;
+  document.getElementById('lga-v').textContent=a.toFixed(1);
+  document.getElementById('lgh-v').textContent=h;
+  document.getElementById('lgk-v').textContent=k;
+  if(Math.abs(a-1)<0.05){document.getElementById('log-info').innerHTML='<div class="chip" style="color:var(--color-text-danger)"><b>주의</b>밑 a = 1은 정의 안됨</div>';return;}
+  const pts=[];
+  for(let i=1;i<=300;i++){const x=-5+i*(10/300);const xp=x-h;if(xp>0.001){const y=Math.log(xp)/Math.log(a)+k;if(Math.abs(y)<12)pts.push({x,y});}}
+  const asym=[{x:h,y:-6},{x:h,y:12}];
+  const opts=baseOpts(-5,5,-6,6);
+  makeOrUpdate('cv-log',{datasets:[zeroLine(-5,5),yAxisLine(-6,6),{label:'',data:asym,borderColor:'#BA7517',borderWidth:1.5,borderDash:[5,5],pointRadius:0,fill:false,tension:0},{label:'',data:pts,borderColor:'#185FA5',borderWidth:2.5,pointRadius:0,fill:false,tension:0,spanGaps:false}]},opts);
+  const at1=(Math.log(1)/Math.log(a)+k).toFixed(2);
+  document.getElementById('log-info').innerHTML=`<div class="chip"><b>밑 a</b>${a.toFixed(1)}</div><div class="chip"><b>점근선</b>x = ${h}</div><div class="chip"><b>x=h+1일때 y</b>${at1}</div><div class="chip"><b>유형</b>${a>1?'증가':'감소'}</div>`;
+}
+
+function drawCompare(){
+  const a=+document.getElementById('ca').value;
+  document.getElementById('ca-v').textContent=a.toFixed(1);
+  if(Math.abs(a-1)<0.05)return;
+  const expPts=xs(-5,5).map(x=>{const y=Math.pow(a,x);return{x,y:y>12?null:y};});
+  const logPts=[];
+  for(let i=1;i<=300;i++){const x=-5+i*(10/300);if(x>0.001){const y=Math.log(x)/Math.log(a);if(Math.abs(y)<12)logPts.push({x,y});}}
+  const symPts=xs(-6,6).map(x=>({x,y:x}));
+  const opts=baseOpts(-5,5,-5,10);
+  makeOrUpdate('cv-compare',{datasets:[
+    {label:'y=x',data:symPts,borderColor:gridCol,borderWidth:1.5,borderDash:[4,4],pointRadius:0,fill:false,tension:0},
+    {label:`y=aˣ`,data:expPts,borderColor:'#185FA5',borderWidth:2.5,pointRadius:0,fill:false,tension:0,spanGaps:false},
+    {label:`y=log_a(x)`,data:logPts,borderColor:'#3B6D11',borderWidth:2.5,pointRadius:0,fill:false,tension:0,spanGaps:false}
+  ]},opts);
+}
+
+function switchTab(name,btn){
+  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('on'));
+  document.querySelectorAll('.panel').forEach(p=>p.classList.remove('on'));
+  btn.classList.add('on');
+  document.getElementById('p-'+name).classList.add('on');
+  setTimeout(()=>{
+    if(name==='linear')drawLinear();
+    else if(name==='quad')drawQuad();
+    else if(name==='exp')drawExp();
+    else if(name==='log')drawLog();
+    else if(name==='compare')drawCompare();
+  },20);
+}
+
+drawLinear();
+</script>
